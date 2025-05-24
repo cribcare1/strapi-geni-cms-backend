@@ -31,25 +31,26 @@ jobs:
           push: true
           tags: ${{ steps.login-ecr.outputs.registry }}/silvergeni:latest
 
-      - name: Deploy to EC2 via SSH
+            - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Install unzip (required for AWS CLI)
+            # Install unzip (needed for AWS CLI installer)
             sudo dnf install -y unzip
 
-            # Install AWS CLI v2 if not already installed
+            # Install AWS CLI v2 if missing
             if ! command -v aws &> /dev/null; then
               echo "Installing AWS CLI..."
               curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
               unzip -o awscliv2.zip
               sudo ./aws/install
+              export PATH=$PATH:/usr/local/bin
             fi
 
-            # Install Docker CE if not already installed
+            # Install Docker CE if missing
             if ! command -v docker &> /dev/null; then
               echo "Installing Docker CE..."
               sudo dnf -y remove podman buildah || true
@@ -62,22 +63,19 @@ jobs:
               sudo systemctl start docker
             fi
 
-            # Wait briefly for Docker to be ready
+            # Wait a few seconds for Docker daemon to start
             sleep 5
 
-            # Login to ECR
-            sudo aws ecr get-login-password --region ap-south-1 | \
-              sudo docker login --username AWS \
-              --password-stdin 043309329282.dkr.ecr.ap-south-1.amazonaws.com
+            # Authenticate Docker to AWS ECR
+            /usr/local/bin/aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 043309329282.dkr.ecr.ap-south-1.amazonaws.com
 
-            # Pull the Docker image
+            # Pull latest image
             sudo docker pull 043309329282.dkr.ecr.ap-south-1.amazonaws.com/silvergeni:latest
 
-            # Stop and remove existing container
+            # Stop and remove existing container (if any)
             sudo docker stop strapi-app || true
             sudo docker rm strapi-app || true
 
-            # Run new container
-            sudo docker run -d -p 80:1337 \
-              --name strapi-app \
-              043309329282.dkr.ecr.ap-south-1.amazonaws.com/silvergeni:latest
+            # Run the new container
+            sudo docker run -d -p 80:1337 --name strapi-app 043309329282.dkr.ecr.ap-south-1.amazonaws.com/silvergeni:latest
+
