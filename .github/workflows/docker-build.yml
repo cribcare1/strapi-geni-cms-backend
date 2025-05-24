@@ -1,19 +1,16 @@
-name: Build and Push Docker Image to AWS ECR
+name: Build, Push Docker Image, and Deploy to EC2
 
 on:
   push:
     branches:
       - develop
-  pull_request:
-    branches:
-      - develop
 
 jobs:
-  build-and-push:
+  build-push-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Configure AWS credentials
@@ -21,18 +18,35 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_C }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_C }}
-          aws-region: ap-south-1  # Change to your region
+          aws-region: ap-south-1
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push to ECR
+      - name: Build and Push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ steps.login-ecr.outputs.registry }}/silvergeni:latest
 
-      - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            aws ecr get-login-password --region ap-south-1 | \
+              docker login --username AWS \
+              --password-stdin 043309329282.dkr.ecr.ap-south-1.amazonaws.com
+
+            docker pull 043309329282.dkr.ecr.ap-south-1.amazonaws.com/silvergeni:latest
+
+            docker stop strapi-app || true
+            docker rm strapi-app || true
+
+            docker run -d -p 80:1337 \
+              --name strapi-app \
+              043309329282.dkr.ecr.ap-south-1.amazonaws.com/silvergeni:latest
