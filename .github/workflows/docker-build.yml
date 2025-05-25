@@ -75,16 +75,16 @@ jobs:
             sleep 5
 
             # Authenticate Docker to AWS ECR
-            aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 043309329282.dkr.ecr.ap-south-1.amazonaws.com
+            aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 779877233580.dkr.ecr.ap-south-1.amazonaws.com
 
             # Pull latest image
-            sudo docker pull 043309329282.dkr.ecr.ap-south-1.amazonaws.com/silvergeni:latest
+            sudo docker pull 779877233580.dkr.ecr.ap-south-1.amazonaws.com/silvergeni:latest
 
             # Stop and remove existing container (if any)
             sudo docker stop strapi-app || true
             sudo docker rm strapi-app || true
 
             # Run the new container
-            sudo docker run -d -p 80:1337 --name strapi-app 043309329282.dkr.ecr.ap-south-1.amazonaws.com/silvergeni:latest
+            sudo docker run -d -p 80:1337 --name strapi-app 779877233580.dkr.ecr.ap-south-1.amazonaws.com/silvergeni:latest
 
 
