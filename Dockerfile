@@ -1,26 +1,37 @@
 # Use Node.js LTS version
 FROM node:18-alpine
 
-# Install system dependencies
-RUN apk add --no-cache build-base gcc autoconf automake zlib-dev libpng-dev vips-dev > /dev/null 2>&1
+# Install system dependencies for Strapi
+RUN apk add --no-cache \
+  build-base \
+  gcc \
+  autoconf \
+  automake \
+  zlib-dev \
+  libpng-dev \
+  vips-dev
 
-# Create app directory
+# Set working directory
 WORKDIR /app
 
 # Enable Corepack and set Yarn version
 RUN corepack enable && corepack prepare yarn@3.6.1 --activate
 
-# Copy all files at once to maintain consistency
+# Copy all files
 COPY . .
 
-# Install dependencies and build
-RUN yarn install 
-RUN yarn why reselect
-RUN yarn add @mui/x-charts@latest
-RUN yarn add reselect@latest
+# Install dependencies
+RUN yarn install
 
-# Expose port
+# Optional: Add extra packages if needed
+# RUN yarn add @mui/x-charts@latest
+# RUN yarn add reselect@latest
+
+# Build the Strapi admin panel for production
+RUN yarn build
+
+# Expose Strapi port
 EXPOSE 1337
 
-# Start the application
-CMD ["yarn", "cms"]
+# Start the app in production mode
+CMD ["yarn", "start"]
