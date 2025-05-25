@@ -28,7 +28,7 @@ RUN yarn install
 # RUN yarn add reselect@latest
 
 # Build Strapi admin panel (required in production)
-#RUN yarn build
+RUN yarn cms
 
 # Expose port
 EXPOSE 1337
